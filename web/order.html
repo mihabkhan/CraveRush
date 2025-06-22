@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Place Your Order</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        #message {
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #f0f0f0;
+            max-width: 400px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Order Form</h1>
+
+    <form id="orderForm">
+        <label for="customer_name">Customer Name:</label><br>
+        <input type="text" id="customer_name" name="customer_name" required><br><br>
+
+        <label for="items">Items:</label><br>
+        <input type="text" id="items" name="items" required><br><br>
+
+        <button type="submit">Place Order</button>
+    </form>
+
+    <div id="message"></div>
+
+    <script>
+        document.getElementById("orderForm").addEventListener("submit", function(e) {
+            e.preventDefault(); 
+
+            const form = e.target;
+            const formData = new FormData(form);
+
+            fetch("PlaceOrderServlet", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById("message").innerHTML = data;
+                form.reset();
+            })
+            .catch(error => {
+                document.getElementById("message").innerHTML = "<p style='color:red;'>Something went wrong.</p>";
+                console.error("Error:", error);
+            });
+        });
+    </script>
+
+</body>
+</html>

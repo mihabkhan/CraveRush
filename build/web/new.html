@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CraveRush Admin Panel</title>
+  <link rel="stylesheet" href="AdminPanel.css">
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2 style="margin-bottom: 30px;">CraveRush Admin</h2>
+    <a href="#" class="nav-link active" onclick="showSection('dashboard', event)">📊 Dashboard</a>
+    <a href="#" class="nav-link" onclick="showSection('products', event)">🍰 Products</a>
+    <a href="#" class="nav-link" onclick="showSection('orders', event)">📦 Orders</a>
+<a href="#" class="nav-link" onclick="window.location='updatemenu.jsp'; return false;">✨ Update Menu</a>
+<a href="#" class="nav-link" onclick="window.location='admin.jsp'; return false;">🗂 Manage Orders</a>️ 
+  </div>
+
+  <!-- Main content -->
+  <div class="main-content">
+    <!-- Dashboard -->
+    <div id="dashboard-section">
+      <h1>Admin Dashboard</h1>
+      <div class="stats-container">
+        <div class="stat-card">
+          <h3>Total Products</h3>
+          <p id="total-products">Loading...</p>
+        </div>
+        <div class="stat-card">
+          <h3>Total Orders</h3>
+          <p id="total-orders">Loading...</p>
+        </div>
+        <div class="stat-card">
+          <h3>Revenue</h3>
+          <p id="total-revenue">Loading...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Products -->
+    <div id="products-section" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>Product Management</h1>
+      </div>
+      <div id="product-list" class="product-list"></div>
+    </div>
+
+    <!-- Orders -->
+    <div id="orders-section" style="display: none;">
+      <h1>Order Management</h1>
+      <div id="order-list">
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Customer</th>
+              <th>Date</th>
+              <th>Items</th>
+              <th>Total</th>
+             
+            </tr>
+          </thead>
+          <tbody id="orders-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let allProducts = [];
+    let allOrders = [];
+
+    document.addEventListener("DOMContentLoaded", function () {
+      showSection('dashboard', { target: document.querySelector(".nav-link.active") });
+      fetchDashboardStats();
+    });
+
+    function fetchDashboardStats() {
+      fetch("http://localhost:8080/CraveRush/api/products")
+        .then(response => response.json())
+        .then(data => {
+          allProducts = data;
+          document.getElementById('total-products').textContent = data.length;
+        })
+        .catch(err => {
+          console.error("Error fetching products:", err);
+          document.getElementById('total-products').textContent = 'N/A';
+        });
+
+      fetch("http://localhost:8080/CraveRush/api/orders")
+        .then(response => response.json())
+        .then(data => {
+          allOrders = data;
+          document.getElementById('total-orders').textContent = data.length;
+
+          let totalRevenue = data.reduce((sum, order) => sum + (order.total || 0), 0);
+          document.getElementById('total-revenue').textContent = `${totalRevenue.toFixed(2)}`;
+        })
+        .catch(err => {
+          console.error("Error fetching orders:", err);
+          document.getElementById('total-orders').textContent = 'N/A';
+          document.getElementById('total-revenue').textContent = '0';
+        });
+    }
+
+    function fetchProducts() {
+      fetch("http://localhost:8080/CraveRush/api/products")
+        .then(response => response.json())
+        .then(data => {
+          allProducts = data;
+          const list = document.getElementById("product-list");
+          list.innerHTML = '';
+
+          data.forEach(product => {
+            const div = document.createElement("div");
+            div.className = "product";
+            div.innerHTML = `
+              <img src="${product.image_path}" alt="${product.name}">
+              <h3>${product.name}</h3>
+              <p>${product.description}</p>
+              <strong>${product.price}</strong>
+              <div style="margin-top: 15px;">
+                <button onclick="editProduct(${product.id})">✏️ Edit</button>
+                <button class="btn-danger" onclick="deleteProduct(${product.id})">🗑️ Delete</button>
+              </div>
+            `;
+            list.appendChild(div);
+          });
+        })
+        .catch(error => console.error("Error loading products:", error));
+    }
+
+    function fetchOrders() {
+      fetch("http://localhost:8080/CraveRush/api/orders")
+        .then(response => response.json())
+        .then(data => {
+          allOrders = data;
+          const tbody = document.getElementById("orders-table-body");
+          tbody.innerHTML = '';
+
+          data.forEach(order => {
+            let itemsDisplay = "N/A";
+
+            if (typeof order.items === 'string') {
+              try {
+                const parsedItems = JSON.parse(order.items);
+                if (Array.isArray(parsedItems)) {
+                  itemsDisplay = parsedItems.map(item => `${item.name} x${item.quantity}`).join(', ');
+                }
+              } catch (e) {
+                itemsDisplay = order.items;
+              }
+            }
+
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${order.id}</td>
+              <td>${order.customer_name}</td>
+              <td>${order.order_date ? new Date(order.order_date).toLocaleDateString() : 'N/A'}</td>
+              <td>${itemsDisplay}</td>
+              <td>${order.total.toFixed(2)}</td>
+             `;
+            tbody.appendChild(tr);
+          });
+        })
+        .catch(err => console.error("Error loading orders:", err));
+    }
+
+    function showSection(sectionId, event) {
+      document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+      if (event && event.target) event.target.classList.add('active');
+
+      document.getElementById('dashboard-section').style.display = 'none';
+      document.getElementById('products-section').style.display = 'none';
+      document.getElementById('orders-section').style.display = 'none';
+
+      document.getElementById(`${sectionId}-section`).style.display = 'block';
+
+      if (sectionId === 'products') fetchProducts();
+      if (sectionId === 'orders') fetchOrders();
+      if (sectionId === 'dashboard') fetchDashboardStats();
+    }
+
+    function editProduct(productId) {
+      alert(`Edit product with ID: ${productId}`);
+    }
+
+    function deleteProduct(productId) {
+      if (confirm('Are you sure you want to delete this product?')) {
+        fetch(`http://localhost:8080/CraveRush/api/products/${productId}`, {
+          method: 'DELETE'
+        })
+        .then(response => {
+          if (response.ok) fetchProducts();
+          else alert('Failed to delete product.');
+        });
+      }
+    }
+
+    function viewOrderDetails(orderId) {
+      alert(`View details for order ID: ${orderId}`);
+    }
+
+    
+  </script>
+</body>
+</html>

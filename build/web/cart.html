@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Your Cart</title>
+  <link rel="stylesheet" href="cart.css">
+</head>
+<body>
+  <header>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="menu.jsp">Menu</a>
+      <a href="cart.html">Cart</a>
+      <a href="login.jsp">Login</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <h1>Your Cart</h1>
+    <table id="cart-table">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Quantity</th>
+          <th>Price</th>
+          <th>Total</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="cart-body">
+        <!-- Items will be injected here -->
+      </tbody>
+    </table>
+    <div id="cart-total">
+      Total: <span id="total-amount">0.00</span> Rs 
+    </div>
+  </div>
+
+  <div class="checkout-container">
+<button id="checkout-btn" onclick="window.location.href='checkout.jsp'">Proceed to Checkout</button>
+  </div>
+
+<script>
+  function loadCart() {
+    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    const cartBody = document.getElementById("cart-body");
+    const totalAmount = document.getElementById("total-amount");
+    cartBody.innerHTML = "";
+    let total = 0;
+
+    if (cart.length === 0) {
+      const row = document.createElement("tr");
+      const emptyCell = document.createElement("td");
+      emptyCell.setAttribute("colspan", "5");
+      emptyCell.innerText = "Your cart is empty.";
+      emptyCell.style.textAlign = "center";
+      row.appendChild(emptyCell);
+      cartBody.appendChild(row);
+      localStorage.setItem("cartItems", "");
+    } else {
+      cart.forEach((item, index) => {
+        const row = document.createElement("tr");
+
+        const itemName = document.createElement("td");
+        itemName.innerText = item.name;
+
+        const itemQty = document.createElement("td");
+        itemQty.innerText = item.quantity;
+
+        const itemPrice = document.createElement("td");
+        itemPrice.innerText = `${item.price.toFixed(2)}`;
+
+        const itemTotal = document.createElement("td");
+        const itemTotalPrice = item.price * item.quantity;
+        itemTotal.innerText = `${itemTotalPrice.toFixed(2)}`;
+
+        const removeBtnTd = document.createElement("td");
+        const removeBtn = document.createElement("button");
+        removeBtn.innerText = "Remove";
+        removeBtn.className = "remove-btn";
+        removeBtn.onclick = () => removeItem(index);
+        removeBtnTd.appendChild(removeBtn);
+
+        total += itemTotalPrice;
+
+        row.append(itemName, itemQty, itemPrice, itemTotal, removeBtnTd);
+        cartBody.appendChild(row);
+      });
+
+      // ✅ Generate and store summary for checkout
+      const summary = cart.map(item => `${item.name} x${item.quantity}`).join(", ");
+      localStorage.setItem("cartItems", summary);
+    }
+
+    totalAmount.innerText = total.toFixed(2);
+  }
+
+  function removeItem(index) {
+    let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    cart.splice(index, 1);
+    localStorage.setItem("cart", JSON.stringify(cart));
+    loadCart();
+  }
+
+  document.addEventListener("DOMContentLoaded", loadCart);
+</script>
+</body>
+</html>
